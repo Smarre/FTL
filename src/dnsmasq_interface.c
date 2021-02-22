@@ -2303,3 +2303,32 @@ void FTL_duplicate_reply(const int id, int *firstID)
 	// Unlock shared memory
 	unlock_shm();
 }
+
+void FTL_listener_change(const int event, struct irec *iface, struct iname *if_tmp)
+{
+	// Listener created bound to interface
+	if(event == 1 || event == 2)
+	{
+		const int port = prettyprint_addr(&iface->addr, daemon->addrbuff);
+		const char *action = event == 1 ? "Starting bound" : "Stopping";
+		logg("%s DNS listener on %s(#%d): %s port %d",
+		     action, iface->name, iface->index, daemon->addrbuff, port);
+		return;
+	}
+
+	// Listener created bound to address
+	if(event == 3)
+	{
+		int port = prettyprint_addr(&if_tmp->addr, daemon->addrbuff);
+		const char *extra = iface == NULL ? " (iface is NULL)" : "";
+		logg("Starting bound DNS listener on %s port %d%s", daemon->addrbuff, port, extra);
+		return;
+	}
+
+	// Wildcard listener created
+	if(event == 4)
+	{
+		logg("Starting wildcard DNS listener on port %d", daemon->port);
+		return;
+	}
+}

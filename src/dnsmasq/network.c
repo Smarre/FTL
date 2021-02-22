@@ -595,6 +595,7 @@ static int release_listener(struct listener *l)
       port = prettyprint_addr(&l->iface->addr, daemon->addrbuff);
       my_syslog(LOG_DEBUG, _("stopped listening on %s(#%d): %s port %d"),
 		l->iface->name, l->iface->index, daemon->addrbuff, port);
+      FTL_listener_change(2, l->iface, NULL);
       /* In case it ever returns */
       l->iface->done = 0;
     }
@@ -1005,6 +1006,8 @@ void create_wildcard_listeners(void)
   else 
     l = l6;
 
+  FTL_listener_change(4, NULL, NULL);
+
   daemon->listeners = l;
 }
 
@@ -1049,6 +1052,7 @@ void create_bound_listeners(int dienow)
 		my_syslog(LOG_DEBUG, _("listening on %s(#%d): %s port %d"),
 			  iface->name, iface->index, daemon->addrbuff, port);
 	      }
+	      FTL_listener_change(1, iface, NULL);
 	  }
       }
 
@@ -1075,6 +1079,8 @@ void create_bound_listeners(int dienow)
 	    int port = prettyprint_addr(&if_tmp->addr, daemon->addrbuff);
 	    my_syslog(LOG_DEBUG, _("listening on %s port %d"), daemon->addrbuff, port);
 	  }
+
+	  FTL_listener_change(3, new->iface, if_tmp);
       }
 }
 

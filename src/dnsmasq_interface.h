@@ -66,4 +66,6 @@ extern char debug_dnsmasq_lines;
 
 bool FTL_unlink_DHCP_lease(const char *ipaddr);
 
+void FTL_listener_change(const int event, struct irec *iface, struct iname *if_tmp);
+
 #endif // DNSMASQ_INTERFACE_H
