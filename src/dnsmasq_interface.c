@@ -454,7 +454,6 @@ bool _FTL_CNAME(const char *domain, const struct crec *cpp, const int id, const 
 	return block;
 }
 
-
 bool _FTL_new_query(const unsigned int flags, const char *name,
                     const char **blockingreason, const union all_addr *addr,
                     const char *types, const unsigned short qtype, const int id,

@@ -227,6 +227,7 @@ bool strcmp_escaped(const char *a, const char *b)
 
 size_t addstr(const char *input)
 {
+	const size_t cur_pos = shmSettings->next_str_pos;
 	if(input == NULL)
 	{
 		logg("WARN: Called addstr() with NULL pointer");
@@ -261,17 +262,20 @@ size_t addstr(const char *input)
 		logg("Adding \"%s\" (len %zu) to buffer. next_str_pos is %u", str, len, shmSettings->next_str_pos);
 
 	// Reserve additional memory if necessary
-	if(shmSettings->next_str_pos + len > shm_strings.size &&
-	   !realloc_shm(&shm_strings, shm_strings.size + pagesize, sizeof(char), true))
+	if(shmSettings->next_str_pos + len > shm_strings.size)
 	{
-		if(N > 0)
-			free(str);
-		return 0;
-	}
+		if(!realloc_shm(&shm_strings, shm_strings.size + pagesize, sizeof(char), true))
+		{
+			logg("Memory allocation failed in addstr(\"%s\"), substituting empty string.", input);
+			if(N > 0)
+				free(str);
+			return 0;
+		}
 
-	// Store new string buffer size in corresponding counters entry
-	// for re-using when we need to re-map shared memory objects
-	counters->strings_MAX = shm_strings.size;
+		// Store new string buffer size in corresponding counters entry
+		// for re-using when we need to re-map shared memory objects
+		counters->strings_MAX = shm_strings.size;
+	}
 
 	// Copy the C string pointed by str into the shared string buffer
 	strncpy(&((char*)shm_strings.ptr)[shmSettings->next_str_pos], str, len);
@@ -281,8 +285,12 @@ size_t addstr(const char *input)
 	// Increment string length counter
 	shmSettings->next_str_pos += len;
 
+	// Debugging output
+	if(config.debug & DEBUG_SHMEM)
+		logg("Added string to buffer. next_str_pos is %u", shmSettings->next_str_pos);
+
 	// Return start of stored string
-	return (shmSettings->next_str_pos - len);
+	return cur_pos;
 }
 
 const char *getstr(const size_t pos)
@@ -749,6 +757,8 @@ static bool realloc_shm(SharedMemory *sharedMemory, const size_t size1, const si
 	if(resize)
 	{
 		// Open shared memory object
+		if(config.debug & DEBUG_SHMEM)
+			logg("Opening SHM object \"%s\"", sharedMemory->name);
 		const int fd = shm_open(sharedMemory->name, O_RDWR, S_IRUSR | S_IWUSR);
 		if(fd == -1)
 		{
@@ -761,6 +771,8 @@ static bool realloc_shm(SharedMemory *sharedMemory, const size_t size1, const si
 		// Using f[tl]allocate() will ensure that there's actually space for
 		// this file. Otherwise we end up with a sparse file that can give
 		// SIGBUS if we run out of space while writing to it.
+		if(config.debug & DEBUG_SHMEM)
+			logg("Allocating %zu bytes", size);
 		const int ret = ftlallocate(fd, 0U, size);
 		if(ret != 0)
 		{
@@ -778,12 +790,18 @@ static bool realloc_shm(SharedMemory *sharedMemory, const size_t size1, const si
 		local_shm_counter++;
 	}
 
+	if(config.debug & DEBUG_SHMEM)
+		logg("Remapping SHM pointer");
 	void *new_ptr = mremap(sharedMemory->ptr, sharedMemory->size, size, MREMAP_MAYMOVE);
+	if(config.debug & DEBUG_SHMEM)
+		logg("Pointer %s (%p --> %p)", (sharedMemory->ptr == new_ptr) ? "constant" : "moved", sharedMemory->ptr, new_ptr);
 	if(new_ptr == MAP_FAILED)
 	{
 		logg("FATAL: realloc_shm(): mremap(%p, %zu, %zu, MREMAP_MAYMOVE): Failed to reallocate \"%s\": %s",
 		     sharedMemory->ptr, sharedMemory->size, size, sharedMemory->name,
 		     strerror(errno));
+		// Unlock SHMEM in case this was a fork.
+		unlock_shm();
 		exit(EXIT_FAILURE);
 	}
 
