@@ -1571,6 +1571,10 @@ char *__attribute__((malloc)) getMACfromIP(const char *ipaddr)
 	const char *querystr = "SELECT hwaddr FROM network WHERE id = "
 	                       "(SELECT network_id FROM network_addresses "
 	                       "WHERE ip = ? GROUP BY ip HAVING max(lastSeen));";
+
+	if(config.debug & DEBUG_DATABASE)
+		logg("getMACfromIP(\"%s\"): Running \"%s\"", ipaddr, querystr);
+
 	int rc = sqlite3_prepare_v2(FTL_db, querystr, -1, &stmt, NULL);
 	if( rc != SQLITE_OK ){
 		logg("getMACfromIP(\"%s\") - SQL error prepare: %s",
@@ -1601,8 +1605,13 @@ char *__attribute__((malloc)) getMACfromIP(const char *ipaddr)
 		hwaddr = NULL;
 	}
 
-	if(config.debug & DEBUG_DATABASE && hwaddr != NULL)
-		logg("Found database hardware address %s -> %s", ipaddr, hwaddr);
+	if(config.debug & DEBUG_DATABASE)
+	{
+		if(hwaddr == NULL)
+			logg("Found no database hardware address for %s", ipaddr);
+		else
+			logg("Found database hardware address %s -> %s", ipaddr, hwaddr);
+	}
 
 	// Finalize statement and close database handle
 	sqlite3_reset(stmt);

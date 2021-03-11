@@ -1322,6 +1322,9 @@ bool gravityDB_get_regex_client_groups(clientsData* client, const unsigned int n
 		return false;
 	}
 
+	if(config.debug & DEBUG_DATABASE)
+		logg("gravityDB_get_regex_client_groups(%s, %s): Running \"%s\"", table, groups, querystr);
+
 	// Prepare query
 	sqlite3_stmt *query_stmt;
 	int rc = sqlite3_prepare_v2(gravity_db, querystr, -1, &query_stmt, NULL);

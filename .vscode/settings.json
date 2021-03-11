@@ -1,0 +1,8 @@
+{
+        "files.exclude": {
+                ".git": true,
+                "cmake": true,
+                "node_modules": true,
+                "src/api/docs/hex": true
+        }
+}
