@@ -22,8 +22,11 @@
 #include "database/common.h"
 // destroy_shmem()
 #include "shmem.h"
+// DIR*
+#include <dirent.h>
 
 pthread_t threads[THREADS_MAX] = { 0 };
+pthread_t api_threads[MAX_API_THREADS] = { 0 };
 bool resolver_ready = false;
 
 void go_daemon(void)
@@ -202,6 +205,19 @@ void cleanup(const int ret)
 		}
 	}
 	logg("All threads joined");
+
+	// Cancel and join possibly still running API worker threads
+	for(unsigned int tid = 0; tid < MAX_API_THREADS; tid++)
+	{
+		// Skip if this is an unused slot
+		if(api_threads[tid] == 0)
+			continue;
+
+		// Otherwise, cancel and join the thread
+		logg("Joining API worker thread %d", tid);
+		pthread_cancel(api_threads[tid]);
+		pthread_join(api_threads[tid], NULL);
+	}
 
 	// Close database connection
 	gravityDB_close();
