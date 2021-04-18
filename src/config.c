@@ -39,13 +39,8 @@ FTLFileNamesStruct FTLfiles = {
 	NULL
 };
 
-// Private global variables
-static char *conflinebuffer = NULL;
-static size_t size = 0;
-
 // Private prototypes
 static char *parse_FTLconf(FILE *fp, const char * key);
-static void release_config_memory(void);
 static void getpath(FILE* fp, const char *option, const char *defaultloc, char **pointer);
 static void set_nice(const char *buffer, int fallback);
 static bool read_bool(const char *option, const bool fallback);
@@ -525,9 +520,6 @@ void read_FTLconf(void)
 
 	logg("Finished config file parsing");
 
-	// Release memory
-	release_config_memory();
-
 	if(fp != NULL)
 		fclose(fp);
 }
@@ -583,10 +575,9 @@ static char *parse_FTLconf(FILE *fp, const char * key)
 	// Go to beginning of file
 	fseek(fp, 0L, SEEK_SET);
 
-	if(config.debug & DEBUG_EXTRA)
-		logg("initial: conflinebuffer = %p, keystr = %p, size = %zu", conflinebuffer, keystr, size);
-
 	errno = 0;
+	static char *conflinebuffer = NULL;
+	static size_t size = 0;
 	while(getline(&conflinebuffer, &size, fp) != -1)
 	{
 		if(config.debug & DEBUG_EXTRA)
@@ -626,16 +617,6 @@ static char *parse_FTLconf(FILE *fp, const char * key)
 	return NULL;
 }
 
-void release_config_memory(void)
-{
-	if(conflinebuffer != NULL)
-	{
-		free(conflinebuffer);
-		conflinebuffer = NULL;
-		size = 0;
-	}
-}
-
 void get_privacy_level(FILE *fp)
 {
 	// See if we got a file handle, if not we have to open
@@ -662,9 +643,6 @@ void get_privacy_level(FILE *fp)
 			config.privacylevel = value;
 		}
 	}
-
-	// Release memory
-	release_config_memory();
 
 	// Have to close the config file if we opened it
 	if(opened)
@@ -704,9 +682,6 @@ void get_blocking_mode(FILE *fp)
 		else
 			logg("Ignoring unknown blocking mode, fallback is NULL blocking");
 	}
-
-	// Release memory
-	release_config_memory();
 
 	// Have to close the config file if we opened it
 	if(opened)
@@ -878,11 +853,6 @@ void read_debuging_settings(FILE *fp)
 	if(opened)
 	{
 		fclose(fp);
-
-		// Release memory only when we opened the file
-		// Otherwise, it may still be needed outside of
-		// this function (initial config parsing)
-		release_config_memory();
 	}
 }
 
