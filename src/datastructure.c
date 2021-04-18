@@ -338,7 +338,7 @@ int findCacheID(int domainID, int clientID, enum query_types query_type)
 	dns_cache->domainID = domainID;
 	dns_cache->clientID = clientID;
 	dns_cache->query_type = query_type;
-	dns_cache->force_reply = 0u;
+	dns_cache->force_reply = REPLY_UNKNOWN;
 
 	// Increase counter by one
 	counters->dns_cache_size++;

@@ -1224,7 +1224,7 @@ static void gravityDB_client_check_again(clientsData* client)
 	}
 }
 
-bool in_whitelist(const char *domain, const DNSCacheData *dns_cache, clientsData* client)
+bool in_whitelist(const char *domain, DNSCacheData *dns_cache, clientsData* client)
 {
 	// If list statement is not ready and cannot be initialized (e.g. no
 	// access to the database), we return false to prevent an FTL crash

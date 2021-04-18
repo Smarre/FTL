@@ -58,7 +58,7 @@ static void query_blocked(queriesData* query,
 
 // Static blocking metadata
 static union all_addr null_addrp = {{ 0 }};
-static unsigned char force_next_DNS_reply = 0u;
+static enum reply_type force_next_DNS_reply = 0u;
 
 // Adds debug information to the regular pihole.log file
 char debug_dnsmasq_lines = 0;
@@ -220,6 +220,10 @@ static bool check_domain_blocked(const char *domain, const int clientID,
 		// Mark domain as regex matched for this client
 		dns_cache->blocking_status = REGEX_BLOCKED;
 		dns_cache->black_regex_idx = regex_idx;
+
+		// Regex may be overwriting reply type for this domain
+		if(dns_cache->force_reply != REPLY_UNKNOWN)
+			force_next_DNS_reply = dns_cache->force_reply;
 		return true;
 	}
 
@@ -390,8 +394,8 @@ static bool _FTL_check_blocking(int queryID, int domainID, int clientID, const c
 			// Truncate "_esni." from queried domain if the parenting domain was the reason for blocking this query
 			blockedDomain = domainstr + 6u;
 			// Force next DNS reply to be NXDOMAIN for _esni.* queries
-			force_next_DNS_reply = NXDOMAIN;
-			dns_cache->force_reply = NXDOMAIN;
+			force_next_DNS_reply = REPLY_NXDOMAIN;
+			dns_cache->force_reply = REPLY_NXDOMAIN;
 		}
 	}
 
@@ -403,7 +407,11 @@ static bool _FTL_check_blocking(int queryID, int domainID, int clientID, const c
 
 		// Debug output
 		if(config.debug & DEBUG_QUERIES)
+		{
 			logg("Blocking %s as %s is %s", domainstr, blockedDomain, *blockingreason);
+			if(force_next_DNS_reply != 0)
+				logg("Forcing next reply to %d", force_next_DNS_reply);
+		}
 	}
 	else
 	{
@@ -691,7 +699,7 @@ bool _FTL_new_query(const unsigned int flags, const char *name,
 		}
 
 		// Block this query
-		force_next_DNS_reply = REFUSED;
+		force_next_DNS_reply = REPLY_REFUSED;
 
 		// Do not further process this query, Pi-hole has never seen it
 		unlock_shm();
@@ -856,17 +864,24 @@ void _FTL_get_blocking_metadata(union all_addr **addrp, unsigned int *flags, con
 	// Check first if we need to force our reply to something different than the
 	// default/configured blocking mode. For instance, we need to force NXDOMAIN
 	// for intercepted _esni.* queries.
-	if(force_next_DNS_reply == NXDOMAIN)
+	if(force_next_DNS_reply == REPLY_NXDOMAIN)
 	{
 		*flags = F_NXDOMAIN;
 		// Reset DNS reply forcing
 		force_next_DNS_reply = 0u;
 		return;
 	}
-	else if(force_next_DNS_reply == REFUSED)
+	else if(force_next_DNS_reply == REPLY_REFUSED)
 	{
 		// Empty flags result in REFUSED
 		*flags = 0;
+		// Reset DNS reply forcing
+		force_next_DNS_reply = 0u;
+		return;
+	}
+	else if(force_next_DNS_reply == REPLY_NODATA)
+	{
+		*flags = F_NOERR;
 		// Reset DNS reply forcing
 		force_next_DNS_reply = 0u;
 		return;
@@ -1696,7 +1711,7 @@ static void query_set_reply(const unsigned int flags, const union all_addr *addr
                             queriesData* query, const struct timeval response)
 {
 	// Iterate through possible values
-	if(flags & F_NEG || force_next_DNS_reply == NXDOMAIN)
+	if(flags & F_NEG || force_next_DNS_reply == REPLY_NXDOMAIN)
 	{
 		if(flags & F_NXDOMAIN)
 			// NXDOMAIN
@@ -1714,10 +1729,10 @@ static void query_set_reply(const unsigned int flags, const union all_addr *addr
 	else if(flags & F_RRNAME)
 		// TXT query
 		query->reply = REPLY_RRNAME;
-	else if((flags & F_RCODE && addr != NULL) || force_next_DNS_reply == REFUSED)
+	else if((flags & F_RCODE && addr != NULL) || force_next_DNS_reply == REPLY_REFUSED)
 	{
 		if((addr != NULL && addr->log.rcode == REFUSED)
-		   || force_next_DNS_reply == REFUSED )
+		   || force_next_DNS_reply == REPLY_REFUSED)
 		{
 			// REFUSED query
 			query->reply = REPLY_REFUSED;

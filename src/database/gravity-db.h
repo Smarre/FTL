@@ -33,7 +33,7 @@ bool in_auditlist(const char *domain);
 
 bool in_gravity(const char *domain, clientsData* client);
 bool in_blacklist(const char *domain, clientsData* client);
-bool in_whitelist(const char *domain, const DNSCacheData *dns_cache, clientsData* client);
+bool in_whitelist(const char *domain, DNSCacheData *dns_cache, clientsData* client);
 
 bool gravityDB_get_regex_client_groups(clientsData* client, const unsigned int numregex, const regexData *regex,
                                        const unsigned char type, const char* table);
