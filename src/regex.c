@@ -144,8 +144,11 @@ static bool compile_regex(const char *regexin, const enum regex_type regexid, co
 				}
 				// Nothing found
 				if(regex[index].ext.query_type == 0)
-					logg_regex_warning(regextype[regexid], "Unknown querytype",
-					                   dbidx, regexin);
+				{
+					char msg[64] = { 0 };
+					snprintf(msg, sizeof(msg), "Unknown querytype \"%s\"", extra);
+					logg_regex_warning(regextype[regexid], msg, dbidx, regexin);
+				}
 
 				// Debug output
 				else if(config.debug & DEBUG_REGEX)
@@ -166,7 +169,7 @@ static bool compile_regex(const char *regexin, const enum regex_type regexid, co
 					logg("   This regex will match in inverted mode.");
 				}
 			}
-			// options ";repl=NXDOMAIN", etc.
+			// options ";reply=NXDOMAIN", etc.
 			else if(sscanf(part, "reply=%16s", extra))
 			{
 				// Warn if specified more than one repl option
@@ -181,8 +184,11 @@ static bool compile_regex(const char *regexin, const enum regex_type regexid, co
 				if(strcasecmp(extra, "NXDOMAIN") == 0)
 					regex[index].ext.reply = REPLY_NXDOMAIN;
 				else
-					logg_regex_warning(regextype[regexid], "Unknown replytype",
-					                   dbidx, regexin);
+				{
+					char msg[64] = { 0 };
+					snprintf(msg, sizeof(msg)-1, "Unknown reply \"%s\"", extra);
+					logg_regex_warning(regextype[regexid], msg, dbidx, regexin);
+				}
 
 				// Debug output
 				if(config.debug & DEBUG_REGEX && regex[index].ext.reply != REPLY_UNKNOWN)
