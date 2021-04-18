@@ -1711,9 +1711,12 @@ static void query_set_reply(const unsigned int flags, const union all_addr *addr
                             queriesData* query, const struct timeval response)
 {
 	// Iterate through possible values
-	if(flags & F_NEG || force_next_DNS_reply == REPLY_NXDOMAIN)
+	if(flags & F_NEG ||
+	   force_next_DNS_reply == REPLY_NXDOMAIN ||
+	   force_next_DNS_reply == REPLY_NODATA)
 	{
-		if(flags & F_NXDOMAIN)
+		if(flags & F_NXDOMAIN ||
+		   force_next_DNS_reply == REPLY_NXDOMAIN)
 			// NXDOMAIN
 			query->reply = REPLY_NXDOMAIN;
 		else
