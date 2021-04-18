@@ -827,7 +827,7 @@
   run sleep 2
   run bash -c 'dig A localhost @127.0.0.1'
   printf "dig: %s\n" "${lines[@]}"
-  [[ ${lines[0]} == *"status: NXDOMAIN"* ]]
+  [[ ${lines[3]} == *"status: NXDOMAIN"* ]]
   run bash -c 'sqlite3 /etc/pihole/gravity.db "DELETE FROM domainlist WHERE domain = \"^localhost$;reply=NXDOMAIN\";"'
   printf "sqlite3 DELETE: %s\n" "${lines[@]}"
   [[ $status == 0 ]]
@@ -850,7 +850,7 @@
   [[ ${lines[0]} == "" ]]
   run bash -c 'dig A localhost @127.0.0.1'
   printf "dig (full): %s\n" "${lines[@]}"
-  [[ ${lines[0]} == *"status: NOERROR"* ]]
+  [[ ${lines[3]} == *"status: NOERROR"* ]]
   run bash -c 'sqlite3 /etc/pihole/gravity.db "DELETE FROM domainlist WHERE domain = \"^localhost$;reply=NODATA\";"'
   printf "sqlite3 DELETE: %s\n" "${lines[@]}"
   [[ $status == 0 ]]
