@@ -179,10 +179,17 @@ static bool compile_regex(const char *regexin, const enum regex_type regexid, co
 					                   dbidx, regexin);
 
 				// Test input string against all implemented reply types
+				const char *type = "";
 				if(strcasecmp(extra, "NODATA") == 0)
+				{
+					type = "NODATA";
 					regex[index].ext.reply = REPLY_NODATA;
-				if(strcasecmp(extra, "NXDOMAIN") == 0)
+				}
+				else if(strcasecmp(extra, "NXDOMAIN") == 0)
+				{
+					type = "NXDOMAIN";
 					regex[index].ext.reply = REPLY_NXDOMAIN;
+				}
 				else
 				{
 					char msg[64] = { 0 };
@@ -192,7 +199,7 @@ static bool compile_regex(const char *regexin, const enum regex_type regexid, co
 
 				// Debug output
 				if(config.debug & DEBUG_REGEX && regex[index].ext.reply != REPLY_UNKNOWN)
-					logg("   This regex will result in a custom reply");
+					logg("   This regex will result in a custom reply: %s", type);
 			}
 			else
 			{
